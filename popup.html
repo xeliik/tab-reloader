@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 360px; padding: 12px; font-family: sans-serif; font-size: 13px; margin: 0; color: #333; }
+    h3 { margin: 0 0 12px 0; font-size: 16px; border-bottom: 2px solid #ccc; padding-bottom: 4px; }
+    .grid-container { display: flex; gap: 15px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 12px; }
+    .grid-col { flex: 1; }
+    .section { margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 12px; }
+    .section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 8px; }
+    .hidden { display: none !important; }
+    .inline-group { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+    input[type="text"], input[type="number"] { padding: 4px 6px; width: 100%; box-sizing: border-box; border: 1px solid #aaa; border-radius: 3px; }
+    .time-input-group { display: flex; gap: 5px; }
+    .time-input-group input { width: 100px; }
+    button { padding: 5px 10px; cursor: pointer; border-radius: 4px; border: 1px solid #aaa; background: #f9f9f9; }
+    button:hover { background: #eee; }
+    .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+    .full-btn { flex: 1; font-weight: bold; padding: 8px; border: none; color: white; }
+    #startBtn { background: #4CAF50; }
+    #startBtn:hover { background: #45a049; }
+    #stopBtn { background: #f44336; }
+    #stopBtn:hover { background: #da190b; }
+    ul { padding-left: 0; margin: 5px 0 0 0; list-style: none; }
+    li { margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; background: #f1f1f1; padding: 2px 6px; border-radius: 3px; }
+    li button { padding: 1px 5px; font-size: 0.9em; color: red; border: none; background: none; }
+    li button:hover { background: #ddd; }
+    label { cursor: pointer; display: inline-flex; align-items: center; margin-bottom: 4px; }
+    input[type="checkbox"], input[type="radio"] { margin: 0 5px 0 0; }
+    b { display: block; margin-bottom: 5px; color: #111; }
+    #countdownContainer { font-size: 1.4em; font-weight: bold; color: #d32f2f; background: #eee; padding: 4px 8px; border-radius: 4px; font-variant-numeric: tabular-nums; text-align: center; }
+  </style>
+</head>
+<body>
+  <h3>Smart Reloader</h3>
+
+  <div class="section">
+    <b>1. Target by URL:</b>
+    <div class="inline-group">
+      <label><input type="checkbox" id="chkUrl"> Enable match</label>
+      <div id="urlGroup" class="hidden" style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+        <input type="text" id="urlPattern" placeholder="e.g. example.com">
+        <div class="inline-group">
+          <button id="testPingBtn">Test Latency</button>
+          <span id="pingResult" style="font-weight: bold; color: #1565c0;">-- ms</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-container">
+    <div class="grid-col">
+      <b>2. Target Tab:</b>
+      <label><input type="radio" name="tabScope" id="tabActive" value="active" checked> Active Only</label><br>
+      <label><input type="radio" name="tabScope" id="tabAll" value="all"> All Tabs</label><br>
+      <label><input type="radio" name="tabScope" id="tabNone" value="none"> None (URL only)</label>
+    </div>
+    <div class="grid-col">
+      <b>3. Target Window:</b>
+      <label><input type="radio" name="windowScope" id="winCurrent" value="current" checked> Current</label><br>
+      <label><input type="radio" name="windowScope" id="winAll" value="all"> All Open</label>
+    </div>
+  </div>
+
+  <div class="grid-container">
+    <div class="grid-col">
+      <b>4. Interval Timer:</b>
+      <label><input type="checkbox" id="chkInterval"> Every X seconds</label>
+      <div id="intervalGroup" class="hidden" style="margin-top: 5px;">
+        <input type="number" id="intervalSecs" step="0.001" placeholder="e.g. 1.5">
+      </div>
+    </div>
+    <div class="grid-col">
+      <b>5. Specific Time (24h):</b>
+      <label><input type="checkbox" id="chkScheduled"> Enable specific</label>
+      <div id="scheduledGroup" class="hidden" style="margin-top: 5px;">
+        <div class="time-input-group">
+          <input type="text" id="timeInput" placeholder="14:30:00.5">
+          <button id="addTimeBtn">Add</button>
+        </div>
+        <ul id="timeList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; flex-direction: column; gap: 5px;">
+      <label style="margin: 0;"><input type="checkbox" id="chkCountdown" checked> Float on Page</label>
+      <label style="margin: 0; color: #1565c0;"><input type="checkbox" id="chkLatency"> Fire early to negate latency</label>
+    </div>
+    <div id="countdownContainer">--:--:--.---</div>
+  </div>
+
+  <div class="btn-group">
+    <button id="startBtn" class="full-btn">Start</button>
+    <button id="stopBtn" class="full-btn">Stop</button>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

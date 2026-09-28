@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Smart Tab Reloader",
+  "version": "1.0",
+  "description": "Reloads tabs based on URL patterns, time, and RTT.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "*://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Smart Reloader Settings"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
