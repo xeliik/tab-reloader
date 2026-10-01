@@ -34,6 +34,5 @@ Because this extension uses rapid timers, it is intended to be run locally as an
 
 ## Known limitations
 * The smallest time unit used is **50ms**, so the extension uses time in multiples of 50ms.
-* Latency Offset uses **RTT**, so it reloads sooner than optimal, but this is sufficient for my needs, so I wont optimize it as of now. (I could just do rtt_time/2, but this way theres a failsafe in case it reloads few ms too early.)
+
 * Popup doesn't update when new option or time is added, selected or changed. Clicking **Start** to *restart* the logic is required.
-* **Filter by URL** currently does not work, will fix soon. 
