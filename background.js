@@ -22,6 +22,25 @@ function updateNextReloadTime(config, nextIntervalTick, scheduledTargets) {
   chrome.storage.local.set({ nextReloadTime: nextTime });
 }
 
+// Cleaned up executeReloads: No more URL filtering
+function executeReloads(config) {
+  let baseQuery = {};
+  if (config.windowScope === 'current') baseQuery.currentWindow = true;
+
+  chrome.tabs.query(baseQuery, (tabs) => {
+    tabs.forEach(tab => {
+      let shouldReload = false;
+      if (config.tabScope === 'all') {
+        shouldReload = true;
+      } else if (config.tabScope === 'active' && tab.active) {
+        shouldReload = true;
+      }
+      
+      if (shouldReload) chrome.tabs.reload(tab.id);
+    });
+  });
+}
+
 chrome.runtime.onMessage.addListener((message) => {
   if (message.action === "start_engine") {
     chrome.storage.local.get(['config'], async (data) => {
@@ -52,51 +71,51 @@ chrome.runtime.onMessage.addListener((message) => {
       if (!data.isRunning || !data.config) return;
       const config = data.config;
       const now = Date.now();
-      let shouldReload = false;
-
-      // Apply the manually tested latency offset
-      const latencyOffset = (config.chkLatency && data.measuredLatency) ? data.measuredLatency : 0;
-
+      
+      // Still accurately dividing measured latency by 2 for the one-way offset
+      const latencyOffset = (config.chkLatency && data.measuredLatency) ? Math.round(data.measuredLatency / 2) : 0;
       let targetsUpdated = false;
+
       if (config.chkScheduled && data.scheduledTargets) {
         for (const [timeStr, targetTimestamp] of Object.entries(data.scheduledTargets)) {
-          if (now >= (targetTimestamp - latencyOffset)) {
-            shouldReload = true;
+          const exactFireTime = targetTimestamp - latencyOffset;
+          const msUntilFire = exactFireTime - now;
+
+          if (msUntilFire <= 100 && msUntilFire > 0) {
+            setTimeout(() => executeReloads(config), msUntilFire);
+            
+            if (config.chkInterval) data.nextIntervalTick = targetTimestamp + (config.intervalSecs * 1000);
+            data.scheduledTargets[timeStr] = targetTimestamp + (24 * 60 * 60 * 1000);
+            targetsUpdated = true;
+          } 
+          else if (msUntilFire <= 0) {
+            executeReloads(config);
             if (config.chkInterval) data.nextIntervalTick = targetTimestamp + (config.intervalSecs * 1000);
             data.scheduledTargets[timeStr] = targetTimestamp + (24 * 60 * 60 * 1000);
             targetsUpdated = true;
           }
         }
-        if (targetsUpdated) chrome.storage.local.set({ scheduledTargets: data.scheduledTargets, nextIntervalTick: data.nextIntervalTick });
-      }
-
-      if (config.chkInterval && data.nextIntervalTick && now >= (data.nextIntervalTick - latencyOffset)) {
-        shouldReload = true;
-        data.nextIntervalTick = data.nextIntervalTick + (config.intervalSecs * 1000);
-        chrome.storage.local.set({ nextIntervalTick: data.nextIntervalTick });
-      }
-
-      if (shouldReload) {
-        updateNextReloadTime(config, data.nextIntervalTick, data.scheduledTargets);
-        let baseQuery = {};
-        if (config.windowScope === 'current') baseQuery.currentWindow = true;
-
-        if (config.tabScope === 'active') {
-          chrome.tabs.query({ ...baseQuery, active: true }, (tabs) => {
-            tabs.forEach(tab => chrome.tabs.reload(tab.id));
-          });
-        } 
-        else if (config.tabScope === 'all') {
-          chrome.tabs.query(baseQuery, (tabs) => {
-            tabs.forEach(tab => chrome.tabs.reload(tab.id));
-          });
+        if (targetsUpdated) {
+          chrome.storage.local.set({ scheduledTargets: data.scheduledTargets, nextIntervalTick: data.nextIntervalTick });
+          updateNextReloadTime(config, data.nextIntervalTick, data.scheduledTargets);
         }
-        if (config.chkUrl && config.urlPattern) {
-          chrome.tabs.query(baseQuery, (tabs) => {
-            tabs.forEach(tab => {
-              if (tab.url && tab.url.includes(config.urlPattern)) chrome.tabs.reload(tab.id);
-            });
-          });
+      }
+
+      if (config.chkInterval && data.nextIntervalTick) {
+        const exactFireTime = data.nextIntervalTick - latencyOffset;
+        const msUntilFire = exactFireTime - now;
+
+        if (msUntilFire <= 100 && msUntilFire > 0) {
+          setTimeout(() => executeReloads(config), msUntilFire);
+          data.nextIntervalTick = data.nextIntervalTick + (config.intervalSecs * 1000);
+          chrome.storage.local.set({ nextIntervalTick: data.nextIntervalTick });
+          updateNextReloadTime(config, data.nextIntervalTick, data.scheduledTargets);
+        } 
+        else if (msUntilFire <= 0) {
+          executeReloads(config);
+          data.nextIntervalTick = data.nextIntervalTick + (config.intervalSecs * 1000);
+          chrome.storage.local.set({ nextIntervalTick: data.nextIntervalTick });
+          updateNextReloadTime(config, data.nextIntervalTick, data.scheduledTargets);
         }
       }
     });
